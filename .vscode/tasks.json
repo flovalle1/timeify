@@ -1,0 +1,78 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run Effekt Main",
+            "type": "shell",
+            "command": "effekt",
+            "args": [
+                "src/main.effekt"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run Effekt Tests",
+            "type": "shell",
+            "command": "effekt",
+            "args": [
+                "src/test.effekt"
+            ],
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Nix Run",
+            "type": "shell",
+            "command": "nix",
+            "args": [
+                "run"
+            ],
+            "group": "none",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Nix Build",
+            "type": "shell",
+            "command": "nix",
+            "args": [
+                "build"
+            ],
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Nix Develop Shell",
+            "type": "shell",
+            "command": "nix",
+            "args": [
+                "develop"
+            ],
+            "group": "none",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        }
+    ]
+}

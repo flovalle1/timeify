@@ -1,0 +1,5 @@
+module main // must be named same as the file!
+
+import src/lib
+
+def main(): Unit = println(helloWorld())
