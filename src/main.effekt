@@ -9,8 +9,8 @@ type TimerState {
   Stopped()
   Running()
 }
-
-//def getCurrentTime(): Int = do java("java.lang.System.currentTimeMillis")
+extern io def getCurrentTime(): String =
+  jsNode "new Date().toISOString();"
 
 def handleTimer(state: TimerState): Unit / { startTimer, stopTimer } = {
   println("Timer Controls:")
@@ -35,6 +35,7 @@ def handleTimer(state: TimerState): Unit / { startTimer, stopTimer } = {
 }
 
 def main(): Unit = {
+  println(getCurrentTime())
   var active: Bool = true
   var state: TimerState = Stopped()
   
