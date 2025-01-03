@@ -1,5 +1,54 @@
-module main // must be named same as the file!
-
+module main
 import src/lib
+import io/console
 
-def main(): Unit = println(helloWorld())
+effect startTimer(): Unit
+effect stopTimer(): Unit
+
+type TimerState {
+  Stopped()
+  Running(startTime: Int)
+}
+
+//def getCurrentTime(): Int = do java("java.lang.System.currentTimeMillis")
+
+def handleTimer(state: TimerState): TimerState / { startTimer, stopTimer } = {
+  println("Timer Controls:")
+  println("Press 's' to start/stop")
+  println("Press 'q' to quit")
+  with console;
+  val input = do readLine()
+  state match {
+    case Running(start) => 
+      if (input == "s") {
+        do stopTimer()
+        Stopped()
+      } else if (input == "q") {
+        Stopped()
+      } else {
+        Running(start)
+      }
+    case Stopped() =>
+      if (input == "s") {
+        do startTimer()
+        return Running(42) 
+      } else if (input == "q") {
+        Stopped()
+      } else {
+        Stopped()
+      }
+  }
+}
+
+def main(): Unit = {
+  var state = Stopped()
+  while (true) {
+    try{
+      state = handleTimer(state)
+    } with startTimer {
+      println("Timer started")
+    } with stopTimer {
+      println("Timer stopped")
+    }     
+  }
+}
