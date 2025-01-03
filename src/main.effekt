@@ -9,8 +9,14 @@ type TimerState {
   Stopped()
   Running()
 }
-extern io def getCurrentTime(): String =
-  jsNode "new Date().toISOString();"
+
+type Time {
+
+}
+
+
+extern io def getCurrentTime(): Int =
+  jsNode "new Date().getTime();"
 
 def handleTimer(state: TimerState): Unit / { startTimer, stopTimer } = {
   println("Timer Controls:")
