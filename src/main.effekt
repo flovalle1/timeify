@@ -7,48 +7,54 @@ effect stopTimer(): Unit
 
 type TimerState {
   Stopped()
-  Running(startTime: Int)
+  Running()
 }
 
 //def getCurrentTime(): Int = do java("java.lang.System.currentTimeMillis")
 
 def handleTimer(state: TimerState): TimerState / { startTimer, stopTimer } = {
   println("Timer Controls:")
-  println("Press 's' to start/stop")
+  println("Press 's' to start")
+  println("Press 'p' to pause")
   println("Press 'q' to quit")
   with console;
   val input = do readLine()
-  state match {
-    case Running(start) => 
-      if (input == "s") {
-        do stopTimer()
-        Stopped()
-      } else if (input == "q") {
-        Stopped()
-      } else {
-        Running(start)
-      }
-    case Stopped() =>
-      if (input == "s") {
-        do startTimer()
-        return Running(42) 
-      } else if (input == "q") {
-        Stopped()
-      } else {
-        Stopped()
-      }
+
+  if (input == "s") {
+    do startTimer()
   }
+  else if (input == "p") {
+    do stopTimer()
+  }
+
+  state match {
+    case Running() => 
+      println("Timer is running")
+      Running()
+    case Stopped() =>
+      println("Timer is stopped")
+      Stopped()
+}
 }
 
 def main(): Unit = {
-  var state = Stopped()
-  while (true) {
+  var active: Bool = true
+  var state: TimerState = Stopped()
+  var backup: TimerState = Stopped()
+  
+  while (active) {
     try{
-      state = handleTimer(state)
+      backup = handleTimer(state)
     } with startTimer {
       println("Timer started")
+      state = Running()
+      resume(())
     } with stopTimer {
       println("Timer stopped")
+      state = Stopped()
+      active = false
+      resume(())
     }     
   }
+  println("Goodbye!")
 }
