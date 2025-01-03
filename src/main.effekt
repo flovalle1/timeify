@@ -10,13 +10,11 @@ type TimerState {
   Running()
 }
 
-type Time {
+extern io def calcTimeDiffInSecs(startIsoString: String, endIsoString: String): String =
+  jsNode "(new Date(${endIsoString}) - new Date(${startIsoString}))/1000"
 
-}
-
-
-extern io def getCurrentTime(): Int =
-  jsNode "new Date().getTime();"
+extern io def getCurrentTime(): String =
+  jsNode "new Date().toISOString();"
 
 def handleTimer(state: TimerState): Unit / { startTimer, stopTimer } = {
   println("Timer Controls:")
@@ -44,6 +42,8 @@ def main(): Unit = {
   println(getCurrentTime())
   var active: Bool = true
   var state: TimerState = Stopped()
+  var startTime: String = ""
+  var endTime: String = ""
   
   while (active) {
     try{
@@ -51,13 +51,18 @@ def main(): Unit = {
     } with startTimer {
       println("Timer started")
       state = Running()
+      startTime = getCurrentTime()
       resume(())
     } with stopTimer {
       println("Timer stopped")
       state = Stopped()
+      endTime = getCurrentTime()
       active = false
       resume(())
     }     
   }
+
+  println(calcTimeDiffInSecs(startTime, endTime))
+
   println("Goodbye!")
 }
