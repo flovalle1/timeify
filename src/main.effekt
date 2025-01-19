@@ -9,7 +9,7 @@ record Project(name: String, times: List[TimeEntry])
 effect startTimer(): Unit
 effect stopTimer(): Unit
 effect quitMainLoop(): Unit
-effect switchProject(project: Project): Unit
+effect switchProject(projectName: String): Unit
 
 type TimerState {
   Stopped()
@@ -28,7 +28,7 @@ def iterateTimeEntries(entries: List[TimeEntry]): Unit =
   }
 
 
-def handleInput(state: TimerState): Unit / { startTimer, stopTimer, quitMainLoop } = {
+def handleInput(state: TimerState): Unit / { startTimer, stopTimer, quitMainLoop, switchProject } = {
   with console;
   val input = do readLine()
 
@@ -41,12 +41,23 @@ def handleInput(state: TimerState): Unit / { startTimer, stopTimer, quitMainLoop
   else if (input == "q") {
     do quitMainLoop()
   }
+  else if (input == "n") {
+    println("Enter new project name")
+    val newProjectName = do readLine()
+    do switchProject(newProjectName)
+  }
+  else {
+    println("Unknown command")
+  }
 }
 
 
 def mainLoop(): Unit = {
   var active: Bool = true
   var state: TimerState = Stopped()
+  
+  var projectList: List[Project] = []
+
   var project: Project = Project("none", [])
   var startTime: String = ""
   var endTime: String = ""
@@ -66,6 +77,9 @@ def mainLoop(): Unit = {
       val timeEntry = TimeEntry(startTime, endTime)
       project = Project(project.name, project.times.append([timeEntry]))
       resume(())
+    } with switchProject {
+      projectName =>
+      println(projectName)
     } with quitMainLoop {
       active = false
     }
@@ -80,6 +94,7 @@ def main(): Unit = {
   println("Press 's' to start time tracking")
   println("Press 'p' to stop")
   println("Press 'q' to quit")
+  println("Press 'n' to switch project")
 
   mainLoop()
 
