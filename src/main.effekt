@@ -2,20 +2,31 @@ module main
 import src/lib
 import io/console
 
+
+record TimeEntry(startTime: String, endTime: String)
+record Project(name: String, times: List[TimeEntry])
+
 effect startTimer(): Unit
 effect stopTimer(): Unit
 effect quitMainLoop(): Unit
-effect switchProject(project: String): Unit
+effect switchProject(project: Project): Unit
 
 type TimerState {
   Stopped()
   Running()
 }
 
-type Project {
-  Name(name: String)
-  Time(startTime: String, endTime: String)
-}
+def iterateTimeEntries(entries: List[TimeEntry]): Unit =
+  entries match {
+    case Nil() => println("Thats it!")
+    case Cons(a, rest) => {
+      println(a.startTime)
+      println(a.endTime)
+
+      iterateTimeEntries(rest)
+    }
+  }
+
 
 def handleInput(state: TimerState): Unit / { startTimer, stopTimer, quitMainLoop } = {
   with console;
@@ -36,7 +47,7 @@ def handleInput(state: TimerState): Unit / { startTimer, stopTimer, quitMainLoop
 def mainLoop(): Unit = {
   var active: Bool = true
   var state: TimerState = Stopped()
-  var project: String = ""
+  var project: Project = Project("none", [])
   var startTime: String = ""
   var endTime: String = ""
   
@@ -52,12 +63,15 @@ def mainLoop(): Unit = {
       println("Timer stopped")
       state = Stopped()
       endTime = getCurrentTime()
+      val timeEntry = TimeEntry(startTime, endTime)
+      project = Project(project.name, project.times.append([timeEntry]))
       resume(())
     } with quitMainLoop {
       active = false
     }
   }
 
+  iterateTimeEntries(project.times)
   println(calcTimeDiffInSecs(startTime, endTime))
 }
 
