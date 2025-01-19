@@ -4,22 +4,19 @@ import io/console
 
 effect startTimer(): Unit
 effect stopTimer(): Unit
+effect switchProject(project: String): Unit
 
 type TimerState {
   Stopped()
   Running()
 }
 
-extern io def calcTimeDiffInSecs(startIsoString: String, endIsoString: String): String =
-  jsNode "(new Date(${endIsoString}) - new Date(${startIsoString}))/1000"
+type Project {
+  Name(name: String)
+  Time(startTime: String, endTime: String)
+}
 
-extern io def getCurrentTime(): String =
-  jsNode "new Date().toISOString();"
-
-def handleTimer(state: TimerState): Unit / { startTimer, stopTimer } = {
-  println("Timer Controls:")
-  println("Press 's' to start")
-  println("Press 'p' to pause")
+def handleInput(state: TimerState): Unit / { startTimer, stopTimer } = {
   with console;
   val input = do readLine()
 
@@ -29,25 +26,19 @@ def handleTimer(state: TimerState): Unit / { startTimer, stopTimer } = {
   else if (input == "p") {
     do stopTimer()
   }
-
-  state match {
-    case Running() => 
-      println("Timer is running")
-    case Stopped() =>
-      println("Timer is stopped")
-  }
 }
 
-def main(): Unit = {
-  println(getCurrentTime())
+
+def mainLoop(): Unit = {
   var active: Bool = true
   var state: TimerState = Stopped()
+  var project: String = ""
   var startTime: String = ""
   var endTime: String = ""
   
   while (active) {
     try{
-      handleTimer(state)
+      handleInput(state)
     } with startTimer {
       println("Timer started")
       state = Running()
@@ -57,12 +48,21 @@ def main(): Unit = {
       println("Timer stopped")
       state = Stopped()
       endTime = getCurrentTime()
-      active = false
       resume(())
     }     
   }
 
   println(calcTimeDiffInSecs(startTime, endTime))
+}
+
+def main(): Unit = {
+  inquirerTest()
+  println("Hey! Welcome to effect time tracker!")
+  println("Press 's' to start time tracking")
+  println("Press 'p' to stop")
+  println("Press 'q' to quit")
+
+  mainLoop()
 
   println("Goodbye!")
 }

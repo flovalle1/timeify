@@ -1,3 +1,23 @@
 module src/lib
 
 def helloWorld(): String = "Hello, world!"
+
+extern def calcTimeDiffInSecs(startIsoString: String, endIsoString: String): String =
+  jsNode "(new Date(${endIsoString}) - new Date(${startIsoString}))/1000"
+
+extern def getCurrentTime(): String =
+  jsNode "new Date().toISOString();"
+
+extern io def inquirerTest(): Unit = jsNode """
+  console.log("test")
+  const inquirer = require('inquirer');
+  inquirer.prompt([
+    {
+      type: 'input',
+      name: 'name',
+      message: 'What is your name?'
+    }
+  ]).then((answers) => {
+    console.log('Hello, ' + answers['name']);
+  });
+  """
