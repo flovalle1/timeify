@@ -4,6 +4,7 @@ import io/console
 
 effect startTimer(): Unit
 effect stopTimer(): Unit
+effect quitMainLoop(): Unit
 effect switchProject(project: String): Unit
 
 type TimerState {
@@ -16,7 +17,7 @@ type Project {
   Time(startTime: String, endTime: String)
 }
 
-def handleInput(state: TimerState): Unit / { startTimer, stopTimer } = {
+def handleInput(state: TimerState): Unit / { startTimer, stopTimer, quitMainLoop } = {
   with console;
   val input = do readLine()
 
@@ -25,6 +26,9 @@ def handleInput(state: TimerState): Unit / { startTimer, stopTimer } = {
   }
   else if (input == "p") {
     do stopTimer()
+  }
+  else if (input == "q") {
+    do quitMainLoop()
   }
 }
 
@@ -49,14 +53,15 @@ def mainLoop(): Unit = {
       state = Stopped()
       endTime = getCurrentTime()
       resume(())
-    }     
+    } with quitMainLoop {
+      active = false
+    }
   }
 
   println(calcTimeDiffInSecs(startTime, endTime))
 }
 
 def main(): Unit = {
-  inquirerTest()
   println("Hey! Welcome to effect time tracker!")
   println("Press 's' to start time tracking")
   println("Press 'p' to stop")
