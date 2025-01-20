@@ -10,6 +10,7 @@ effect startTimer(): Unit
 effect stopTimer(): Unit
 effect quitMainLoop(): Unit
 effect switchProject(projectName: String): Unit
+effect foundProject(found: Bool): Unit
 
 type TimerState {
   Stopped()
@@ -26,6 +27,23 @@ def iterateTimeEntries(entries: List[TimeEntry]): Unit =
       iterateTimeEntries(rest)
     }
   }
+
+def searchForProject(projectName: String, projectList: List[Project]): Unit / { foundProject} = {
+  projectList match {
+    case Nil() => do foundProject(false)
+    case Cons(a, rest) => {
+      if (a.name == projectName) {
+        do foundProject(true)
+      } else {
+        try {
+          searchForProject(projectName, rest)
+        } with foundProject { found =>
+          do foundProject(found)
+        }
+      }
+    }
+  }
+}
 
 
 def handleInput(state: TimerState): Unit / { startTimer, stopTimer, quitMainLoop, switchProject } = {
@@ -50,6 +68,8 @@ def handleInput(state: TimerState): Unit / { startTimer, stopTimer, quitMainLoop
     println("Unknown command")
   }
 }
+
+
 
 
 def mainLoop(): Unit = {
@@ -77,9 +97,22 @@ def mainLoop(): Unit = {
       val timeEntry = TimeEntry(startTime, endTime)
       project = Project(project.name, project.times.append([timeEntry]))
       resume(())
-    } with switchProject {
-      projectName =>
+    } with switchProject {  projectName =>
+      println("Switching project to ")
       println(projectName)
+      try {
+      searchForProject(projectName, projectList)
+      } with foundProject { found =>
+        if (found) {
+          println("Project found")
+        } else {
+          println("Project not found - creating project")
+          projectList = projectList.append([project])
+          resume(())
+        }
+      }
+      project = Project(projectName, [])
+
     } with quitMainLoop {
       active = false
     }
