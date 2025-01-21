@@ -28,18 +28,18 @@ def iterateTimeEntries(entries: List[TimeEntry]): Unit =
     }
   }
 
-def searchForProject(projectName: String, projectList: List[Project]): Unit / { foundProject} = {
+def searchForProject(projectName: String, projectList: List[Project]): Project / { foundProject} = {
   projectList match {
-    case Nil() => do foundProject(false)
+    case Nil() => {
+      do foundProject(false)
+      Project("none", [])
+      }
     case Cons(a, rest) => {
       if (a.name == projectName) {
         do foundProject(true)
+        Project(a.name, a.times)
       } else {
-        try {
           searchForProject(projectName, rest)
-        } with foundProject { found =>
-          do foundProject(found)
-        }
       }
     }
   }
@@ -60,7 +60,7 @@ def handleInput(state: TimerState): Unit / { startTimer, stopTimer, quitMainLoop
     do quitMainLoop()
   }
   else if (input == "n") {
-    println("Enter new project name")
+    println("Enter project name")
     val newProjectName = do readLine()
     do switchProject(newProjectName)
   }
@@ -84,6 +84,7 @@ def mainLoop(): Unit = {
   
   while (active) {
     try{
+      println("currently on project " ++ project.name)
       handleInput(state)
     } with startTimer {
       println("Timer started")
@@ -98,21 +99,22 @@ def mainLoop(): Unit = {
       project = Project(project.name, project.times.append([timeEntry]))
       resume(())
     } with switchProject {  projectName =>
-      println("Switching project to ")
-      println(projectName)
+      println("Switching project to " ++ projectName)
       try {
-      searchForProject(projectName, projectList)
+      project = searchForProject(projectName, projectList)
+      println("THIS HAS BEEN REACHED")
       } with foundProject { found =>
         if (found) {
           println("Project found")
-        } else {
-          println("Project not found - creating project")
-          projectList = projectList.append([project])
           resume(())
+        } else {
+          println("Project not found - creating project...")
+          project = Project(projectName, [])
+          projectList = projectList.append([project])
+          println("Successfully created project " ++ projectName)
         }
       }
-      project = Project(projectName, [])
-
+  
     } with quitMainLoop {
       active = false
     }
