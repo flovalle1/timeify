@@ -1,9 +1,45 @@
 module src/lib
+import io/console
 
 def helloWorld(): String = "Hello, world!"
 
-extern def calcTimeDiffInSecs(startIsoString: String, endIsoString: String): String =
-  jsNode "(new Date(${endIsoString}) - new Date(${startIsoString}))/1000"
+extern def calcTimeDiffInSecs(startIsoString: String, endIsoString: String): Int =
+  jsNode "Math.floor((new Date(${endIsoString}) - new Date(${startIsoString}))/1000)"
 
 extern def getCurrentTime(): String =
   jsNode "new Date().toISOString();"
+
+
+
+type TimerState {
+  Stopped()
+  Running()
+}
+
+effect startTimer(): Unit
+effect stopTimer(): Unit
+effect quitMainLoop(): Unit
+effect switchProject(projectName: String): Unit
+
+def handleInput(state: TimerState): Unit / { startTimer, stopTimer, quitMainLoop, switchProject } = {
+  with console;
+  val input = do readLine()
+
+  if (input == "s") {
+    do startTimer()
+  }
+  else if (input == "p") {
+    do stopTimer()
+  }
+  else if (input == "q") {
+    do quitMainLoop()
+  }
+  else if (input == "n") {
+    println("Enter project name")
+    val newProjectName = do readLine()
+    do switchProject(newProjectName)
+  }
+  else {
+    println("Unknown command")
+  }
+}

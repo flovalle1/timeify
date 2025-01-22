@@ -1,74 +1,48 @@
-module main
 import src/lib
-import io/console
 
+effect lookupProject(name: String): Project
 
 record TimeEntry(startTime: String, endTime: String)
 record Project(name: String, times: List[TimeEntry])
 
-effect startTimer(): Unit
-effect stopTimer(): Unit
-effect quitMainLoop(): Unit
-effect switchProject(projectName: String): Unit
-effect foundProject(found: Bool): Unit
+def println(p: Project) = println("Project(" ++ p.name ++ ")")
 
-type TimerState {
-  Stopped()
-  Running()
+
+effect breakWith[T](value: T): Unit
+
+def boundaryDefault[T] { body: => Unit / breakWith[T] } { default: => T } : T =
+  try { body(); default() } with breakWith[T] { value => value }
+
+def iterateProjectList(name: String, projects: List[Project]): Unit / breakWith[Project] = {
+  projects.foreach {
+    case project and project.name == name =>
+      do breakWith(project)
+    case _ => ()
+  }
 }
 
-def iterateTimeEntries(entries: List[TimeEntry]): Unit =
-  entries match {
-    case Nil() => println("Thats it!")
-    case Cons(a, rest) => {
-      println(a.startTime)
-      println(a.endTime)
+def updateProjectList(projects: List[Project], projectToUpdate: Project): List[Project] = 
+{
+var updateProjectList: List[Project] = []
+  projects.foreach { project =>
+    if (project.name == projectToUpdate.name)
+      updateProjectList = updateProjectList.append([projectToUpdate])
+    else
+      updateProjectList = updateProjectList.append([project])
+  }
+  updateProjectList
+}
 
-      iterateTimeEntries(rest)
+def sumTimeEntries(times: List[TimeEntry]): Int = {
+  times match {
+    case Nil() => 0
+    case Cons(a, rest) => {
+      val timeDiff = calcTimeDiffInSecs(a.startTime, a.endTime)
+      val tailSum = sumTimeEntries(rest)
+      tailSum + timeDiff
     }
   }
-
-def searchForProject(projectName: String, projectList: List[Project]): Project / { foundProject} = {
-  projectList match {
-    case Nil() => {
-      do foundProject(false)
-      Project("none", [])
-      }
-    case Cons(a, rest) => {
-      if (a.name == projectName) {
-        do foundProject(true)
-        Project(a.name, a.times)
-      } else {
-          searchForProject(projectName, rest)
-      }
-    }
-  }
 }
-
-
-def handleInput(state: TimerState): Unit / { startTimer, stopTimer, quitMainLoop, switchProject } = {
-  with console;
-  val input = do readLine()
-
-  if (input == "s") {
-    do startTimer()
-  }
-  else if (input == "p") {
-    do stopTimer()
-  }
-  else if (input == "q") {
-    do quitMainLoop()
-  }
-  else if (input == "n") {
-    println("Enter project name")
-    val newProjectName = do readLine()
-    do switchProject(newProjectName)
-  }
-  else {
-    println("Unknown command")
-  }
-}
-
 
 
 
@@ -78,13 +52,13 @@ def mainLoop(): Unit = {
   
   var projectList: List[Project] = []
 
-  var project: Project = Project("none", [])
+  var currentProject: Project = Project("none", [])
   var startTime: String = ""
   var endTime: String = ""
   
   while (active) {
     try{
-      println("currently on project " ++ project.name)
+      println("currently on project " ++ currentProject.name)
       handleInput(state)
     } with startTimer {
       println("Timer started")
@@ -96,23 +70,20 @@ def mainLoop(): Unit = {
       state = Stopped()
       endTime = getCurrentTime()
       val timeEntry = TimeEntry(startTime, endTime)
-      project = Project(project.name, project.times.append([timeEntry]))
+      currentProject = Project(currentProject.name, currentProject.times.append([timeEntry]))
       resume(())
     } with switchProject {  projectName =>
       println("Switching project to " ++ projectName)
+      projectList = updateProjectList(projectList, currentProject)
       try {
-      project = searchForProject(projectName, projectList)
-      println("THIS HAS BEEN REACHED")
-      } with foundProject { found =>
-        if (found) {
-          println("Project found")
-          resume(())
-        } else {
-          println("Project not found - creating project...")
-          project = Project(projectName, [])
-          projectList = projectList.append([project])
-          println("Successfully created project " ++ projectName)
+        currentProject = do lookupProject(projectName)
+      } with lookupProject { name =>
+        val project = boundaryDefault[Project] { iterateProjectList(name, projectList) } {
+          println("Project not found, creating new project.")
+          projectList = projectList.append([Project(name, [])])
+          Project(name,[])
         }
+        resume(project)
       }
   
     } with quitMainLoop {
@@ -120,18 +91,14 @@ def mainLoop(): Unit = {
     }
   }
 
-  iterateTimeEntries(project.times)
-  println(calcTimeDiffInSecs(startTime, endTime))
+  projectList.foreach {
+    case project =>
+      println(project.name ++ ": ")
+      println(sumTimeEntries(project.times))
+  }
+
 }
 
 def main(): Unit = {
-  println("Hey! Welcome to effect time tracker!")
-  println("Press 's' to start time tracking")
-  println("Press 'p' to stop")
-  println("Press 'q' to quit")
-  println("Press 'n' to switch project")
-
   mainLoop()
-
-  println("Goodbye!")
 }
