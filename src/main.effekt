@@ -91,10 +91,11 @@ def mainLoop(): Unit = {
     }
   }
 
+
   projectList.foreach {
     case project =>
-      println(project.name ++ ": ")
-      println(sumTimeEntries(project.times))
+      val totalSeconds = sumTimeEntries(project.times)
+      println(project.name ++ ": " ++ convertSecsToHMS(totalSeconds))
   }
 
 }

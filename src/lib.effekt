@@ -9,6 +9,10 @@ extern def calcTimeDiffInSecs(startIsoString: String, endIsoString: String): Int
 extern def getCurrentTime(): String =
   jsNode "new Date().toISOString();"
 
+extern def convertSecsToHMS(secs: Int): String =
+  jsNode "new Date(${secs} * 1000).toISOString().substr(11, 8)"
+
+
 
 
 type TimerState {
