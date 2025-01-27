@@ -26,10 +26,12 @@ schedule.scheduleJob('30 9 * * *', () => {
 
 schedule.scheduleJob('59 23 * * *', () => {
     tracking_started = false;
+    console.log('Tracking state reset');
 });
 
 app.post('/tracking-started', (req, res) => {
     tracking_started = true;
+    console.log('Tracking started');
 });
 
 app.listen(3000, () => console.log('Cronjob Server running on port 3000'));

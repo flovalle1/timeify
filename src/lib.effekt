@@ -12,6 +12,9 @@ extern def getCurrentTime(): String =
 extern def convertSecsToHMS(secs: Int): String =
   jsNode "new Date(${secs} * 1000).toISOString().substr(11, 8)"
 
+extern def sendTimerStartedRequest(): Unit =
+  jsNode "fetch('http://localhost:3000/tracking-started', { method: 'POST' })"
+
 
 
 

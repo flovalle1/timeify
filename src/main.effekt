@@ -4,11 +4,26 @@ def mainLoop(): Unit = {
   var active: Bool = true
   var state: TimerState = Stopped()
   
-  var projectList: List[Project] = []
+  var projectList: List[Project] = [Project("admin", [])]
 
-  var currentProject: Project = Project("none", [])
+  var currentProject: Project = Project("admin", [])
   var startTime: String = ""
   var endTime: String = ""
+
+  try {
+    handleInput(state)
+  } with startTimer {
+    sendTimerStartedRequest()
+    startTime = getCurrentTime()
+    state = Running()
+    println("Timer started")
+  } with stopTimer {
+    println("You can't stop the timer at first.")
+  } with switchProject { projectName =>
+    println("You can't switch project at first.")
+  } with quitMainLoop {
+    active = false
+  }
   
   while (active) {
     try{
@@ -18,6 +33,7 @@ def mainLoop(): Unit = {
       println("Timer started")
       state = Running()
       startTime = getCurrentTime()
+      
       resume(())
     } with stopTimer {
       println("Timer stopped")
