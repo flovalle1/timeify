@@ -1,51 +1,5 @@
 import src/lib
 
-effect lookupProject(name: String): Project
-
-record TimeEntry(startTime: String, endTime: String)
-record Project(name: String, times: List[TimeEntry])
-
-def println(p: Project) = println("Project(" ++ p.name ++ ")")
-
-
-effect breakWith[T](value: T): Unit
-
-def boundaryDefault[T] { body: => Unit / breakWith[T] } { default: => T } : T =
-  try { body(); default() } with breakWith[T] { value => value }
-
-def iterateProjectList(name: String, projects: List[Project]): Unit / breakWith[Project] = {
-  projects.foreach {
-    case project and project.name == name =>
-      do breakWith(project)
-    case _ => ()
-  }
-}
-
-def updateProjectList(projects: List[Project], projectToUpdate: Project): List[Project] = 
-{
-var updateProjectList: List[Project] = []
-  projects.foreach { project =>
-    if (project.name == projectToUpdate.name)
-      updateProjectList = updateProjectList.append([projectToUpdate])
-    else
-      updateProjectList = updateProjectList.append([project])
-  }
-  updateProjectList
-}
-
-def sumTimeEntries(times: List[TimeEntry]): Int = {
-  times match {
-    case Nil() => 0
-    case Cons(a, rest) => {
-      val timeDiff = calcTimeDiffInSecs(a.startTime, a.endTime)
-      val tailSum = sumTimeEntries(rest)
-      tailSum + timeDiff
-    }
-  }
-}
-
-
-
 def mainLoop(): Unit = {
   var active: Bool = true
   var state: TimerState = Stopped()
@@ -58,7 +12,7 @@ def mainLoop(): Unit = {
   
   while (active) {
     try{
-      println("currently on project " ++ currentProject.name)
+      println("project " ++ currentProject.name)
       handleInput(state)
     } with startTimer {
       println("Timer started")
