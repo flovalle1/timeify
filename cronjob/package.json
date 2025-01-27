@@ -1,0 +1,18 @@
+{
+  "name": "cronjob",
+  "version": "1.0.0",
+  "description": "Cronjob server for the timify project",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.17.1",
+    "node-fetch": "^2.6.1",
+    "node-schedule": "^2.0.0",
+    "resend": "^4.1.1"
+  },
+  "author": "Florian Martel",
+  "license": "ISC"
+}
