@@ -4,7 +4,25 @@ import test
 import src/lib
 
 def main() = mainSuite("lib") {
-  test("Hello world") {
-    assertEqual(helloWorld(), "Hello, world!")
+  
+  test("calcTimeDiffInSecs") {
+    val start = "2021-01-01T00:00:00Z"
+    val end = "2021-01-01T00:00:05Z"
+    assertEqual(calcTimeDiffInSecs(start, end), 5)
+  }
+
+  test("getCurrentTime") {
+    val now = getCurrentTime()
+    assertTrue(now.length > 0)
+  }
+
+  test("convertSecsToHMS") {
+    assertEqual(convertSecsToHMS(3661), "01:01:01")
+  }
+
+  test("sumTimeEntries") {
+    val entries = [TimeEntry("2021-01-01T00:00:00Z","2021-01-01T00:00:05Z"),
+                   TimeEntry("2021-01-01T00:00:05Z","2021-01-01T00:00:10Z")]
+    assertEqual(sumTimeEntries(entries), 10)
   }
 }

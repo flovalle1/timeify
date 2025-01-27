@@ -45,7 +45,7 @@ def mainLoop(): Unit = {
     }
   }
 
-
+  projectList = updateProjectList(projectList, currentProject)
   projectList.foreach {
     case project =>
       val totalSeconds = sumTimeEntries(project.times)
