@@ -1,0 +1,62 @@
+module src/jsondb
+
+import char
+import scanner
+import stream
+import src/jsonlib
+import io
+import io/error
+import io/filesystem
+import src/lib
+
+def saveJsonString(s: String) = {
+  // Save the string to a file
+  writeFile("data.json", s)
+}
+
+def getJsonString(): String = {
+  // Read the string from a file
+  with on[IOError].panic;
+  val s = readFile("data.json") 
+  s
+} 
+
+def createJsonStream(plist: List[Project]): Unit / emit[String] = {
+  encodeJson {
+    do list {
+      plist.foreach {
+        p =>
+        do dict {
+          do field("name") {
+            do string(p.name)
+          }
+          do field("times") {
+            do list {
+              p.times.foreach {
+                t=>
+                do dict {
+                  do field("start") {
+                    do string(t.startTime)
+                  }
+                  do field("end") {
+                    do string(t.endTime)
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+def createJsonObject(input: String): Unit / emit[Project] = {
+  val j = feed[JsonValue](input) {
+    with returning::scanner[Char, JsonValue]
+    build {
+      decodeJson().second
+    }
+  }
+  do emit(j)
+}
