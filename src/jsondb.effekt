@@ -9,25 +9,34 @@ import io/error
 import io/filesystem
 import src/lib
 
+
+interface ProjectConstructor {
+  def projectName[R]() {contents: => R / JsonBuilder}: Unit
+  //def timeEntry[R]() {contents: => R / JsonBuilder}: Unit
+}
+
 def saveJsonString(s: String) = {
   // Save the string to a file
-  writeFile("data.json", s)
+  with on[IOError].panic;
+  with filesystem;
+  do writeFile("data.json", s)
 }
 
 def getJsonString(): String = {
   // Read the string from a file
   with on[IOError].panic;
-  val s = readFile("data.json") 
+  with filesystem;
+  val s = do readFile("data.json") 
   s
 } 
 
 def createJsonStream(plist: List[Project]): Unit / emit[String] = {
-  encodeJson {
+    encodeJson {
     do list {
       plist.foreach {
         p =>
         do dict {
-          do field("name") {
+          do field("projectName") {
             do string(p.name)
           }
           do field("times") {
@@ -51,12 +60,104 @@ def createJsonStream(plist: List[Project]): Unit / emit[String] = {
   }
 }
 
-def createJsonObject(input: String): Unit / emit[Project] = {
-  val j = feed[JsonValue](input) {
-    with returning::scanner[Char, JsonValue]
-    build {
-      decodeJson().second
+// def createJsonObject(input: String): Unit / emit[Project] = {
+//   val j = feed[JsonValue](input) {
+//     with returning::scanner[Char, JsonValue]
+//     build {
+//       decodeJson().second
+//     }
+//   }
+//   do emit(j)
+// }
+
+def transformJson[R]{ body: => R / JsonBuilder }: R / {emit[String], ProjectConstructor} = {
+  //println("started transformJSON")
+  try body() with JsonBuilder {
+      def null() = { resume(do emit("null")) }
+      def bool(v) = { resume(do emit( if(v){ "true" } else { "false" } )) }
+      def number(n) = { resume(do emit(show(n))) }
+      def string(s) = { resume(do emit(escape(s))) }
+      def list() = resume { {b} => transformJsonList { b() } }
+      def dict() = resume { {b} => transformJsonObject { b() } }
+  }
+}
+
+def transformJsonObject[R]{ body: => R / JsonObjectBuilder }: R / {emit[String], ProjectConstructor} = {
+  //println("started transformJsonObject")
+  var first = true
+  do emit("{")
+  def c(k: String) = {
+    if (not(first)) { do emit(",") }
+    do emit(escape(k)); do emit(":")
+    first = false
+  }
+  val r = transformJson {
+    try body() with JsonObjectBuilder {
+      def field(k) = resume { 
+        {b} => 
+          if(k=="projectName") do projectName{b};
+
+          b() 
+        }
     }
   }
-  do emit(j)
+  do emit("}")
+  r
+}
+
+def transformJsonList[R]{ body: => R / JsonBuilder }: R / {emit[String], ProjectConstructor} = {
+  var first = true
+  do emit("[")
+  def c() = {
+    if (not(first)) { do emit(",") }
+    first = false
+  }
+  val r = transformJson {
+    try { body() } with JsonBuilder {
+      def null() = { c(); resume(do null()) }
+      def bool(v) = { c(); resume(do bool(v)) }
+      def number(n) = { c(); resume(do number(n)) }
+      def string(s) = { c(); resume(do string(s)) }
+      def list() = resume { { b } => c(); do list{b} }
+      def dict() = resume { { b } => c(); do dict{b} }
+    }
+  }
+  do emit("]")
+  r
+}
+
+
+def main(): Unit = {
+  with on[WrongFormat].panic
+
+  val p = [Project("Project1", [TimeEntry("2021-01-01", "2021-01-02"), TimeEntry("2022-01-01", "2022-01-02")]), Project("Project2", [TimeEntry("2021-01-01", "2021-01-02")])]
+  var tempJson = ""
+  try {createJsonStream(p)} with emit[String] { s => tempJson = tempJson ++ s; resume(()) }
+  
+  try{
+    val j = feed[JsonValue](tempJson){
+            with returning::scanner[Char, JsonValue]
+            build {
+              decodeJson()
+            }.second
+          }
+
+    try {transformJson{
+      unbuild(j)
+    }} with ProjectConstructor {
+      def projectName() = resume { 
+        {b} => 
+        try {
+          encodeJson{
+            b()
+          }
+        } with emit[String] { s => println(s); resume(())}
+         ()
+        }
+    }
+  } 
+  with emit[String] { n => resume( ()) }
+  //with emitProject { n => resume(println("emitProject: " ++ n))}
+
+  println("works")
 }
