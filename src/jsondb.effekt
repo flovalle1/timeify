@@ -11,8 +11,8 @@ import src/lib
 
 
 interface ProjectConstructor {
-  def projectName[R]() {contents: => R / JsonBuilder}: Unit
-  //def timeEntry[R]() {contents: => R / JsonBuilder}: Unit
+  def projectName[R]() {contents: => R / JsonBuilder}: R
+  def timeEntry[R]() {contents: => R / JsonBuilder}: R
 }
 
 def saveJsonString(s: String) = {
@@ -95,9 +95,8 @@ def transformJsonObject[R]{ body: => R / JsonObjectBuilder }: R / {emit[String],
     try body() with JsonObjectBuilder {
       def field(k) = resume { 
         {b} => 
-          if(k=="projectName") do projectName{b};
-
-          b() 
+          if(k=="projectName") {do projectName{b}}
+          else {if(k=="times") {do timeEntry{b}} else b(); }
         }
     }
   }
@@ -145,19 +144,11 @@ def main(): Unit = {
     try {transformJson{
       unbuild(j)
     }} with ProjectConstructor {
-      def projectName() = resume { 
-        {b} => 
-        try {
-          encodeJson{
-            b()
-          }
-        } with emit[String] { s => println(s); resume(())}
-         ()
-        }
+      def projectName() = resume { {b} => try { encodeJson{b()}} with emit[String] { s => println(s); resume(())};}
+      def timeEntry() = resume { {b} => try { encodeJson{b()}} with emit[String] { s => println(s); resume(())};}
     }
   } 
   with emit[String] { n => resume( ()) }
-  //with emitProject { n => resume(println("emitProject: " ++ n))}
 
   println("works")
 }
