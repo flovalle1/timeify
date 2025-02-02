@@ -157,6 +157,49 @@ def transformListOnlyValues[R]{ body: => R / JsonBuilder }: R / emit[String] = {
 }
 
 
+def loadProjectList(): List[Project] = {
+  with on[WrongFormat].panic
+
+
+  val jsonString = getJsonString()
+  var projectListFromJson: List[Project] = []
+  try {
+  val jsonValue = feed[JsonValue](jsonString){
+            with returning::scanner[Char, JsonValue]
+            build {
+              decodeJson()
+            }.second
+          }
+
+  var tempProject: Project = Project("", [])
+
+  try {
+    transformJson{
+      unbuild(jsonValue)
+    }} with ProjectConstructor {
+      def projectName() = resume { {b} => try { encodeJson{b()}} with emit[String] { 
+        s => 
+          if (tempProject.name != "") projectListFromJson = projectListFromJson.append([tempProject]); 
+          tempProject = Project(deescape(s), []);
+          resume(())};
+          }
+      def timeEntry() = resume { {b} => try { transformTimeEntry{b()}} with emit[TimeEntry] { 
+        s => 
+          tempProject = Project(tempProject.name, tempProject.times.append([s]));
+          resume(())};
+        }
+  }
+  } with emit[String] { n => resume( ()) }
+
+  projectListFromJson
+}
+
+def saveProjectList(plist: List[Project]): Unit = {
+  var tempJson = ""
+  try {createJsonStream(plist)} with emit[String] { s => tempJson = tempJson ++ s; resume(()) }
+  saveJsonString(tempJson)
+}
+
 def main(): Unit = {
   with on[WrongFormat].panic
 

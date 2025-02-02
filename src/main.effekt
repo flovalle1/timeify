@@ -1,10 +1,11 @@
 import src/lib
+import src/jsondb
 
 def mainLoop(): Unit = {
   var active: Bool = true
   var state: TimerState = Stopped()
   
-  var projectList: List[Project] = [Project("admin", [])]
+  var projectList = loadProjectList()
 
   var currentProject: Project = Project("admin", [])
   var startTime: String = ""
@@ -58,6 +59,7 @@ def mainLoop(): Unit = {
   
     } with quitMainLoop {
       active = false
+      saveProjectList(projectList)
     }
   }
 
