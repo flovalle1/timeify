@@ -13,36 +13,15 @@ def mainLoop(): Unit = {
   var startTime: String = ""
   var endTime: String = ""
 
-  def initialInputHandler = new UserInput {
-    def startTimer() = {
-      sendTimerStartedRequest()
-      startTime = getCurrentTime()
-      state = Running()
-      println("Timer started")
-    }
-    def stopTimer() = {
-    println("You can't stop the timer at first.")
-    }
-    def switchProject(projectName: String) = { 
-      println("You can't switch project at first.")
-    }
-    def quitMainLoop() = {
-      active = false
-    }
-}
 
-  def standardInputHandler = new UserInput {
+  def stoppedInputHandler = new UserInput {
     def startTimer() = {
       println("Timer started")
       state = Running()
       startTime = getCurrentTime()
     }
     def stopTimer() = {
-      println("Timer stopped")
-      state = Stopped()
-      endTime = getCurrentTime()
-      val timeEntry = TimeEntry(startTime, endTime)
-      currentProject = Project(currentProject.name, currentProject.times.append([timeEntry]))
+     println("Timer is already stopped.")
     }
     def switchProject(projectName: String) = { 
       println("Switching project to " ++ projectName)
@@ -62,14 +41,53 @@ def mainLoop(): Unit = {
       active = false
     }
 }
- 
 
-  handleInput() { initialInputHandler }
+  def runningInputHandler = new UserInput {
+    def startTimer() = {
+      println("Timer is already running.")
+    }
+    def stopTimer() = {
+      println("Timer stopped")
+      state = Stopped()
+      endTime = getCurrentTime()
+      val timeEntry = TimeEntry(startTime, endTime)
+      currentProject = Project(currentProject.name, currentProject.times.append([timeEntry]))
+    }
+    def switchProject(projectName: String) = { 
+      println("Please stop the timer, before swtiching the project.")
+    }
+    def quitMainLoop() = {
+      active = false
+    }
+}
+ 
+  def initialInputHandler = new UserInput {
+    def startTimer() = {
+      sendTimerStartedRequest()
+      startTime = getCurrentTime()
+      state = Running()
+      println("Timer started")
+    }
+    def stopTimer() = {
+      println("You can't stop the timer at first.")
+    }
+    def switchProject(projectName: String) = { 
+      stoppedInputHandler.switchProject(projectName)
+    }
+    def quitMainLoop() = {
+      active = false
+    }
+}
+
+  while (state match { case Stopped() => true case Running() => false }) handleInput() { initialInputHandler }
   
   //Main Loop
   while (active) {
-    println("project " ++ currentProject.name)
-    handleInput{ standardInputHandler }
+    println("current project: " ++ currentProject.name)
+    state match {
+      case Running() => handleInput{ runningInputHandler }
+      case Stopped() => handleInput{ stoppedInputHandler }
+    }  
   }
 
 
