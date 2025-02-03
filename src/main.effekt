@@ -1,5 +1,7 @@
 import src/lib
 import src/jsondb
+import list
+import exception
 
 
 def mainLoop(): Unit = {
@@ -8,7 +10,15 @@ def mainLoop(): Unit = {
   var state: TimerState = Stopped()
 
   var projectList = loadProjectList()
-  var currentProject: Project = Project("admin", [])
+
+  var currentProject: Project = try{ head[Project](projectList) } with Exception[MissingValue] {
+    def raise(exception: MissingValue, msg: String) = {
+      println("Empty project list, creating standard project admin.")
+      val newProject = Project("admin", [])
+      projectList = projectList.append([newProject])
+      newProject
+    }
+  }
 
   var startTime: String = ""
   var endTime: String = ""
