@@ -10,12 +10,18 @@ import io/filesystem
 import src/lib
 import string
 
-
+/**
+ * Interface for constructing Project objects from JSON.
+ */
 interface ProjectConstructor {
   def projectName[R]() {contents: => R / JsonBuilder}: R
   def timeEntry[R]() {contents: => R / JsonBuilder}: R
 }
 
+/**
+ * Save a JSON string to a file.
+ * @param s The JSON string to save.
+ */
 def saveJsonString(s: String) = {
   // Save the string to a file
   with on[IOError].panic;
@@ -23,34 +29,44 @@ def saveJsonString(s: String) = {
   do writeFile("data.json", s)
 }
 
+/**
+ * Read a JSON string from a file.
+ * @return The JSON string read from the file.
+ */
 def getJsonString(): String = {
   // Read the string from a file
   with on[IOError].panic;
   with filesystem;
   val s = do readFile("data.json") 
   s
-} 
+}
 
+/**
+ * Remove surrounding quotes from a string.
+ * @param str The string to deescape.
+ * @return The deescaped string.
+ */
 def deescape(str: String) =
   if (startsWith(str, "\"") and endsWith(str, "\"")) return substring(str, 1, length(str) - 1)
   else str
 
+/**
+ * Create a JSON stream from a list of projects.
+ * @param plist The list of projects.
+ */
 def createJsonStream(plist: List[Project]): Unit / emit[String] = {
-    encodeJson {
+  encodeJson {
     do list {
-      plist.foreach {
-        p =>
+      plist.foreach { p =>
         do dict {
           do field("projectName") {
             do string(p.name)
           }
           do field("times") {
             do list {
-              p.times.foreach {
-                t=>
-                  do string(t.startTime)
-                  do string(t.endTime)
-                }
+              p.times.foreach { t =>
+                do string(t.startTime)
+                do string(t.endTime)
               }
             }
           }
@@ -58,31 +74,28 @@ def createJsonStream(plist: List[Project]): Unit / emit[String] = {
       }
     }
   }
+}
 
-// def createJsonObject(input: String): Unit / emit[Project] = {
-//   val j = feed[JsonValue](input) {
-//     with returning::scanner[Char, JsonValue]
-//     build {
-//       decodeJson().second
-//     }
-//   }
-//   do emit(j)
-// }
-
+/**
+ * Transform JSON using a custom builder.
+ * @param body The body of the transformation.
+ */
 def transformJson[R]{ body: => R / JsonBuilder }: R / {emit[String], ProjectConstructor} = {
-  //println("started transformJSON")
   try body() with JsonBuilder {
-      def null() = { resume(do emit("null")) }
-      def bool(v) = { resume(do emit( if(v){ "true" } else { "false" } )) }
-      def number(n) = { resume(do emit(show(n))) }
-      def string(s) = { resume(do emit(escape(s))) }
-      def list() = resume { {b} => transformJsonList { b() } }
-      def dict() = resume { {b} => transformJsonObject { b() } }
+    def null() = { resume(do emit("null")) }
+    def bool(v) = { resume(do emit(if (v) { "true" } else { "false" })) }
+    def number(n) = { resume(do emit(show(n))) }
+    def string(s) = { resume(do emit(escape(s))) }
+    def list() = resume { { b } => transformJsonList { b() } }
+    def dict() = resume { { b } => transformJsonObject { b() } }
   }
 }
 
+/**
+ * Transform a JSON object using a custom builder.
+ * @param body The body of the transformation.
+ */
 def transformJsonObject[R]{ body: => R / JsonObjectBuilder }: R / {emit[String], ProjectConstructor} = {
-  //println("started transformJsonObject")
   var first = true
   do emit("{")
   def c(k: String) = {
@@ -92,17 +105,22 @@ def transformJsonObject[R]{ body: => R / JsonObjectBuilder }: R / {emit[String],
   }
   val r = transformJson {
     try body() with JsonObjectBuilder {
-      def field(k) = resume { 
-        {b} => 
-          if(k=="projectName") {do projectName{b}}
-          else {if(k=="times") {do timeEntry{b}} else b(); }
-        }
+      def field(k) = resume {
+        { b } =>
+          if (k == "projectName") { do projectName { b } }
+          else { if (k == "times") { do timeEntry { b } } else b() }
+        
+      }
     }
   }
   do emit("}")
   r
 }
 
+/**
+ * Transform a JSON list using a custom builder.
+ * @param body The body of the transformation.
+ */
 def transformJsonList[R]{ body: => R / JsonBuilder }: R / {emit[String], ProjectConstructor} = {
   var first = true
   do emit("[")
@@ -116,32 +134,46 @@ def transformJsonList[R]{ body: => R / JsonBuilder }: R / {emit[String], Project
       def bool(v) = { c(); resume(do bool(v)) }
       def number(n) = { c(); resume(do number(n)) }
       def string(s) = { c(); resume(do string(s)) }
-      def list() = resume { { b } => c(); do list{b} }
-      def dict() = resume { { b } => c(); do dict{b} }
+      def list() = resume { { b } => c(); do list { b } }
+      def dict() = resume { { b } => c(); do dict { b } }
     }
   }
   do emit("]")
   r
 }
 
+/**
+ * Transform a time entry using a custom builder.
+ * @param body The body of the transformation.
+ */
 def transformTimeEntry[R]{ body: => R / JsonBuilder }: R / {emit[TimeEntry]} = {
-  var entryToEmit = TimeEntry("","")
+  var entryToEmit = TimeEntry("", "")
 
   try body() with JsonBuilder {
-      def null() = { resume(do emit(TimeEntry("",""))) }
-      def bool(v) = { resume(do emit(TimeEntry("",""))) }
-      def number(n) = { resume(do emit(TimeEntry("",""))) }
-      def string(s) = { resume(do emit(TimeEntry("",""))) }
-      def list() = resume { {b} => try{transformListOnlyValues { b() }} with emit[String] { 
-        s => 
-          if (entryToEmit.startTime == "") {entryToEmit = TimeEntry(s, "");} else {do emit(TimeEntry(deescape(entryToEmit.startTime), deescape(s))); entryToEmit= TimeEntry("","")}  
-          resume(())
-          };
+    def null() = { resume(do emit(TimeEntry("", ""))) }
+    def bool(v) = { resume(do emit(TimeEntry("", ""))) }
+    def number(n) = { resume(do emit(TimeEntry("", ""))) }
+    def string(s) = { resume(do emit(TimeEntry("", ""))) }
+    def list() = resume {
+      { b } =>
+        try { transformListOnlyValues { b() } } with emit[String] {
+          s =>
+            if (entryToEmit.startTime == "") { entryToEmit = TimeEntry(s, "") }
+            else { do emit(TimeEntry(deescape(entryToEmit.startTime), deescape(s))); entryToEmit = TimeEntry("", "") }
+            resume(())
         }
-      def dict() = resume { {b} => try{encodeJsonObject{b()}} with emit[String] { s => println(s); resume(())}; }
+    }
+    def dict() = resume {
+      { b } =>
+        try { encodeJsonObject { b() } } with emit[String] { s => println(s); resume(()) }
+    }
   }
 }
 
+/**
+ * Similar to encodeJsonList but does not emit "[","]" and ",".
+ * @param body The body of the transformation.
+ */
 def transformListOnlyValues[R]{ body: => R / JsonBuilder }: R / emit[String] = {
   val r = encodeJson {
     try { body() } with JsonBuilder {
@@ -149,96 +181,119 @@ def transformListOnlyValues[R]{ body: => R / JsonBuilder }: R / emit[String] = {
       def bool(v) = { resume(do bool(v)) }
       def number(n) = { resume(do number(n)) }
       def string(s) = { resume(do string(s)) }
-      def list() = resume { { b } => do list{b} }
-      def dict() = resume { { b } => do dict{b} }
+      def list() = resume { { b } => do list { b } }
+      def dict() = resume { { b } => do dict { b } }
     }
   }
   r
 }
 
-
+/**
+ * Load saved list of projects.
+ * @return The list of projects.
+ */
 def loadProjectList(): List[Project] = {
   with on[WrongFormat].panic
-
 
   val jsonString = getJsonString()
   var projectListFromJson: List[Project] = []
   try {
-  val jsonValue = feed[JsonValue](jsonString){
-            with returning::scanner[Char, JsonValue]
-            build {
-              decodeJson()
-            }.second
-          }
+    val jsonValue = feed[JsonValue](jsonString) {
+      with returning::scanner[Char, JsonValue]
+      build {
+        decodeJson()
+      }.second
+    }
 
-  var tempProject: Project = Project("", [])
+    var tempProject: Project = Project("", [])
 
-  try {
-    transformJson{
-      unbuild(jsonValue)
-    }} with ProjectConstructor {
-      def projectName() = resume { {b} => try { encodeJson{b()}} with emit[String] { 
-        s => 
-          if (tempProject.name != "") projectListFromJson = projectListFromJson.append([tempProject]); 
-          tempProject = Project(deescape(s), []);
-          resume(())};
+    try {
+      transformJson {
+        unbuild(jsonValue)
+      }
+    } with ProjectConstructor {
+      def projectName() = resume {
+        { b } =>
+          try { encodeJson { b() } } with emit[String] {
+            s =>
+              if (tempProject.name != "") projectListFromJson = projectListFromJson.append([tempProject])
+              tempProject = Project(deescape(s), [])
+              resume(())
           }
-      def timeEntry() = resume { {b} => try { transformTimeEntry{b()}} with emit[TimeEntry] { 
-        s => 
-          tempProject = Project(tempProject.name, tempProject.times.append([s]));
-          resume(())};
-        }
-  }
-  } with emit[String] { n => resume( ()) }
+      }
+      def timeEntry() = resume {
+        { b } =>
+          try { transformTimeEntry { b() } } with emit[TimeEntry] {
+            s =>
+              tempProject = Project(tempProject.name, tempProject.times.append([s]))
+              resume(())
+          }
+      }
+    }
+  } with emit[String] { n => resume(()) }
 
   projectListFromJson
 }
 
+/**
+ * Save a list of projects to a JSON file.
+ * @param plist The list of projects.
+ */
 def saveProjectList(plist: List[Project]): Unit = {
   var tempJson = ""
-  try {createJsonStream(plist)} with emit[String] { s => tempJson = tempJson ++ s; resume(()) }
+  try { createJsonStream(plist) } with emit[String] { s => tempJson = tempJson ++ s; resume(()) }
   saveJsonString(tempJson)
 }
 
-def main(): Unit = {
+/**
+ * Test the JSON database library.
+ * @return True if the test passes, false otherwise.
+ */
+def testJsonDbLib(): Bool = {
   with on[WrongFormat].panic
 
   val p: List[Project] = [Project("Project1", [TimeEntry("2021-01-01", "2021-01-02"), TimeEntry("2022-01-01", "2022-01-02")]), Project("Project2", [TimeEntry("2021-01-01", "2021-01-02")])]
-  
+
   var tempJson = ""
   var projectListFromJson: List[Project] = []
-  try {createJsonStream(p)} with emit[String] { s => tempJson = tempJson ++ s; resume(()) }
-  
-  try{
+  try { createJsonStream(p) } with emit[String] { s => tempJson = tempJson ++ s; resume(()) }
+
+  try {
     var tempProject: Project = Project("", [])
-    val j = feed[JsonValue](tempJson){
-            with returning::scanner[Char, JsonValue]
-            build {
-              decodeJson()
-            }.second
-          }
-
-    try {transformJson{
-      unbuild(j)
-    }} with ProjectConstructor {
-      def projectName() = resume { {b} => try { encodeJson{b()}} with emit[String] { 
-        s => 
-          if (tempProject.name != "") projectListFromJson = projectListFromJson.append([tempProject]); 
-          tempProject = Project(deescape(s), []);
-          resume(())};
-          }
-      def timeEntry() = resume { {b} => try { transformTimeEntry{b()}} with emit[TimeEntry] { 
-        s => 
-          tempProject = Project(tempProject.name, tempProject.times.append([s]));
-          resume(())};
-        }
+    val j = feed[JsonValue](tempJson) {
+      with returning::scanner[Char, JsonValue]
+      build {
+        decodeJson()
+      }.second
     }
-  } 
-  with emit[String] { n => resume( ()) }
 
+    try {
+      transformJson {
+        unbuild(j)
+      }
+    } with ProjectConstructor {
+      def projectName() = resume {
+        { b } =>
+          try { encodeJson { b() } } with emit[String] {
+            s =>
+              if (tempProject.name != "") projectListFromJson = projectListFromJson.append([tempProject])
+              tempProject = Project(deescape(s), [])
+              resume(())
+          }
+      }
+      def timeEntry() = resume {
+        { b } =>
+          try { transformTimeEntry { b() } } with emit[TimeEntry] {
+            s =>
+              tempProject = Project(tempProject.name, tempProject.times.append([s]))
+              resume(())
+          }
+      }
+    }
+  } with emit[String] { n => resume(()) }
 
   var tempJsonAfterRecreation = ""
-  try {createJsonStream(p)} with emit[String] { s => tempJsonAfterRecreation = tempJsonAfterRecreation ++ s; resume(()) }
-  println(tempJson)
-  if (tempJson==tempJsonAfterRecreation) println("works")
+  try { createJsonStream(p) } with emit[String] { s => tempJsonAfterRecreation = tempJsonAfterRecreation ++ s; resume(()) }
+
+  tempJson == tempJsonAfterRecreation
 }

@@ -2,6 +2,7 @@ module src/test
 
 import test
 import src/lib
+import src/jsondb
 
 def main() = mainSuite("lib") {
   
@@ -24,5 +25,9 @@ def main() = mainSuite("lib") {
     val entries = [TimeEntry("2021-01-01T00:00:00Z","2021-01-01T00:00:05Z"),
                    TimeEntry("2021-01-01T00:00:05Z","2021-01-01T00:00:10Z")]
     assertEqual(sumTimeEntries(entries), 10)
+  }
+
+  test("JsonDb") {
+    assertTrue(testJsonDbLib())
   }
 }
