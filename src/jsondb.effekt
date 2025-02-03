@@ -3,7 +3,7 @@ module src/jsondb
 import char
 import scanner
 import stream
-import src/jsonlib
+import json //TODO: update this to standard import from Effekt library
 import io
 import io/error
 import io/filesystem

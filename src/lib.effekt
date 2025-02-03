@@ -1,19 +1,43 @@
 module src/lib
 import io/console
 
+// External JavaScript functions
+
+/**
+ * Calculate the time difference in seconds between two ISO date strings.
+ * @param startIsoString The start time in ISO format.
+ * @param endIsoString The end time in ISO format.
+ * @return The time difference in seconds.
+ */
 extern def calcTimeDiffInSecs(startIsoString: String, endIsoString: String): Int =
   jsNode "Math.floor((new Date(${endIsoString}) - new Date(${startIsoString}))/1000)"
 
+/**
+ * Get the current time in ISO format.
+ * @return The current time as an ISO string.
+ */
 extern def getCurrentTime(): String =
   jsNode "new Date().toISOString();"
 
+/**
+ * Convert seconds to HH:MM:SS format.
+ * @param secs The number of seconds.
+ * @return The time in HH:MM:SS format.
+ */
 extern def convertSecsToHMS(secs: Int): String =
   jsNode "new Date(${secs} * 1000).toISOString().substr(11, 8)"
 
+/**
+ * Send a request indicating that the timer has started.
+ */
 extern def sendTimerStartedRequest(): Unit =
   jsNode "fetch('http://localhost:3000/tracking-started', { method: 'POST' })"
 
+// User input interface
 
+/**
+ * Interface for handling user input.
+ */
 interface UserInput {
   def startTimer(): Unit
   def stopTimer(): Unit
@@ -21,11 +45,20 @@ interface UserInput {
   def switchProject(projectName: String): Unit
 }
 
+// Timer state types
+
+/**
+ * Type representing the state of the timer.
+ */
 type TimerState {
   Stopped()
   Running()
 }
 
+/**
+ * Handle user input and call the appropriate handler methods.
+ * @param handler The handler for user input.
+ */
 def handleInput() {handler: UserInput}: Unit = {
   with console;
   val input = do readLine()
@@ -49,19 +82,44 @@ def handleInput() {handler: UserInput}: Unit = {
   }
 }
 
+// Effect for looking up a project
 effect lookupProject(name: String): Project
 
+// Record definitions
+
+/**
+ * Record representing a time entry with start and end times.
+ */
 record TimeEntry(startTime: String, endTime: String)
+
+/**
+ * Record representing a project with a name and a list of time entries.
+ */
 record Project(name: String, times: List[TimeEntry])
 
+/**
+ * Print the details of a project.
+ * @param p The project to print.
+ */
 def println(p: Project) = println("Project(" ++ p.name ++ ")")
 
-
+// Effect to break with a value
 effect breakWith[T](value: T): Unit
 
+/**
+ * Execute a block of code with a default value if no value is provided.
+ * @param body The block of code to execute.
+ * @param default The default value to return if no value is provided.
+ * @return The result of the block of code or the default value.
+ */
 def boundaryDefault[T] { body: => Unit / breakWith[T] } { default: => T } : T =
   try { body(); default() } with breakWith[T] { value => value }
 
+/**
+ * Iterate through a list of projects and break with the project that matches the given name.
+ * @param name The name of the project to look for.
+ * @param projects The list of projects to iterate through.
+ */
 def iterateProjectList(name: String, projects: List[Project]): Unit / breakWith[Project] = {
   projects.foreach {
     case project and project.name == name =>
@@ -70,9 +128,14 @@ def iterateProjectList(name: String, projects: List[Project]): Unit / breakWith[
   }
 }
 
-def updateProjectList(projects: List[Project], projectToUpdate: Project): List[Project] = 
-{
-var updateProjectList: List[Project] = []
+/**
+ * Update a list of projects with a specific project.
+ * @param projects The list of projects.
+ * @param projectToUpdate The project to update.
+ * @return The updated list of projects.
+ */
+def updateProjectList(projects: List[Project], projectToUpdate: Project): List[Project] = {
+  var updateProjectList: List[Project] = []
   projects.foreach { project =>
     if (project.name == projectToUpdate.name)
       updateProjectList = updateProjectList.append([projectToUpdate])
@@ -82,6 +145,11 @@ var updateProjectList: List[Project] = []
   updateProjectList
 }
 
+/**
+ * Sum the time entries in a list of time entries.
+ * @param times The list of time entries.
+ * @return The total time in seconds.
+ */
 def sumTimeEntries(times: List[TimeEntry]): Int = {
   times match {
     case Nil() => 0
