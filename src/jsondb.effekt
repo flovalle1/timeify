@@ -230,8 +230,8 @@ def loadProjectList(): List[Project] = {
           }
       }
     }
+  projectListFromJson = projectListFromJson.append([tempProject])
   } with emit[String] { n => resume(()) }
-
   projectListFromJson
 }
 
