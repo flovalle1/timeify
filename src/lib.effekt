@@ -16,38 +16,38 @@ extern def sendTimerStartedRequest(): Unit =
   jsNode "fetch('http://localhost:3000/tracking-started', { method: 'POST' })"
 
 
-
+interface UserInput {
+  def startTimer(): Unit
+  def stopTimer(): Unit
+  def quitMainLoop(): Unit
+  def switchProject(projectName: String): Unit
+}
 
 type TimerState {
   Stopped()
   Running()
 }
 
-effect startTimer(): Unit
-effect stopTimer(): Unit
-effect quitMainLoop(): Unit
-effect switchProject(projectName: String): Unit
-
-def handleInput(state: TimerState): Unit / { startTimer, stopTimer, quitMainLoop, switchProject } = {
+def handleInput() {handler: UserInput}: Unit = {
   with console;
   val input = do readLine()
 
   if (input == "s") {
-    do startTimer()
+    handler.startTimer()
   }
   else if (input == "p") {
-    do stopTimer()
+    handler.stopTimer()
   }
   else if (input == "q") {
-    do quitMainLoop()
+    handler.quitMainLoop()
   }
   else if (input == "n") {
-    println("Enter project name")
+    println("Enter project name.")
     val newProjectName = do readLine()
-    do switchProject(newProjectName)
+    handler.switchProject(newProjectName)
   }
   else {
-    println("Unknown command")
+    println("Unknown command - try again.")
   }
 }
 

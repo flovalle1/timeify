@@ -1,49 +1,50 @@
 import src/lib
 import src/jsondb
 
+
 def mainLoop(): Unit = {
   var active: Bool = true
-  var state: TimerState = Stopped()
-  
-  var projectList = loadProjectList()
 
+  var state: TimerState = Stopped()
+
+  var projectList = loadProjectList()
   var currentProject: Project = Project("admin", [])
+
   var startTime: String = ""
   var endTime: String = ""
 
-  try {
-    handleInput(state)
-  } with startTimer {
-    sendTimerStartedRequest()
-    startTime = getCurrentTime()
-    state = Running()
-    println("Timer started")
-  } with stopTimer {
+  def initialInputHandler = new UserInput {
+    def startTimer() = {
+      sendTimerStartedRequest()
+      startTime = getCurrentTime()
+      state = Running()
+      println("Timer started")
+    }
+    def stopTimer() = {
     println("You can't stop the timer at first.")
-  } with switchProject { projectName =>
-    println("You can't switch project at first.")
-  } with quitMainLoop {
-    active = false
-  }
-  
-  while (active) {
-    try{
-      println("project " ++ currentProject.name)
-      handleInput(state)
-    } with startTimer {
+    }
+    def switchProject(projectName: String) = { 
+      println("You can't switch project at first.")
+    }
+    def quitMainLoop() = {
+      active = false
+    }
+}
+
+  def standardInputHandler = new UserInput {
+    def startTimer() = {
       println("Timer started")
       state = Running()
       startTime = getCurrentTime()
-      
-      resume(())
-    } with stopTimer {
+    }
+    def stopTimer() = {
       println("Timer stopped")
       state = Stopped()
       endTime = getCurrentTime()
       val timeEntry = TimeEntry(startTime, endTime)
       currentProject = Project(currentProject.name, currentProject.times.append([timeEntry]))
-      resume(())
-    } with switchProject {  projectName =>
+    }
+    def switchProject(projectName: String) = { 
       println("Switching project to " ++ projectName)
       projectList = updateProjectList(projectList, currentProject)
       try {
@@ -56,12 +57,22 @@ def mainLoop(): Unit = {
         }
         resume(project)
       }
-  
-    } with quitMainLoop {
+    }
+    def quitMainLoop() = {
       active = false
       saveProjectList(projectList)
     }
+}
+ 
+
+  handleInput() { initialInputHandler }
+  
+  //Main Loop
+  while (active) {
+    println("project " ++ currentProject.name)
+    handleInput{ standardInputHandler }
   }
+
 
   projectList = updateProjectList(projectList, currentProject)
   projectList.foreach {
@@ -73,5 +84,7 @@ def mainLoop(): Unit = {
 }
 
 def main(): Unit = {
+  println("Welcome to to Timeify - your personal time tracker!")
+  println("Type 's' to start the timer, 'p' to pause the timer, 's' to switch project or 'q' to quit and save.")
   mainLoop()
 }
