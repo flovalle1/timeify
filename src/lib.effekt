@@ -59,7 +59,7 @@ type TimerState {
  * Handle user input and call the appropriate handler methods.
  * @param handler The handler for user input.
  */
-def handleInput() {handler: UserInput}: Unit = {
+def handleConsoleInput() {handler: UserInput}: Unit = {
   with console;
   val input = do readLine()
 

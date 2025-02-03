@@ -89,14 +89,14 @@ def mainLoop(): Unit = {
     }
 }
 
-  while (state match { case Stopped() => true case Running() => false }) handleInput() { initialInputHandler }
+  while (state match { case Stopped() => true case Running() => false }) handleConsoleInput() { initialInputHandler }
   
   //Main Loop
   while (active) {
     println("current project: " ++ currentProject.name)
     state match {
-      case Running() => handleInput{ runningInputHandler }
-      case Stopped() => handleInput{ stoppedInputHandler }
+      case Running() => handleConsoleInput{ runningInputHandler }
+      case Stopped() => handleConsoleInput{ stoppedInputHandler }
     }  
   }
 
