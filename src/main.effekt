@@ -114,6 +114,6 @@ def mainLoop(): Unit = {
 
 def main(): Unit = {
   println("Welcome to to Timeify - your personal time tracker!")
-  println("Type 's' to start the timer, 'p' to pause the timer, 's' to switch project or 'q' to quit and save.")
+  println("Type 's' to start the timer, 'p' to pause the timer, 'n' to switch project or 'q' to quit and save.")
   mainLoop()
 }

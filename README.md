@@ -8,6 +8,7 @@ Timify is an Effekt-based time tracker. You can create projects, track time on p
   - `main.effekt`: Main entry point.  
   - `test.effekt`: Entry point for tests.  
   - `lib.effekt`: Shared library code.  
+  - `jsondb.effekt`: Functions for interaction with json streams.
 - **Nix Flake** configuration is in `flake.nix` for easy reproduction and CI.
 
 ## Getting Started
@@ -21,12 +22,17 @@ Timify is an Effekt-based time tracker. You can create projects, track time on p
    ```bash
    nix develop
    ```
-3. **Install Effekt (if not using Nix)**:  
+3. **Install Effekt**:  
    Download and install from [Effekt's repository](https://github.com/effekt-lang/effekt).
 
 ## Usage
 
-- **Run the Application**:  
+- **Run the Cronjob server**:  
+  ```bash
+  cd cronjob
+  node server.js
+  ```
+- **Run the CLI Application**:  
   ```bash
   effekt src/main.effekt
   ```
@@ -34,11 +40,6 @@ Timify is an Effekt-based time tracker. You can create projects, track time on p
   ```bash
   effekt src/test.effekt
   ```
-
-## Contributing
-
-- Update `flake.nix` to adjust dependencies.  
-- Submit PRs to improve the code or docs.
 
 ## License
 
